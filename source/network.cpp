@@ -3,11 +3,14 @@
 #include <curl/curl.h>
 #include <malloc.h>
 #include <cstdio>
+#include <cstring>
 
 #define SOC_ALIGN       0x1000
 #define SOC_BUFFERSIZE  0x100000
 
 static u32* socBuffer = nullptr;
+
+static NetworkProgress s_progress;
 
 static size_t writeStringCallback(void* contents, size_t size, size_t nmemb, void* userp) {
     size_t totalSize = size * nmemb;
@@ -19,6 +22,50 @@ static size_t writeStringCallback(void* contents, size_t size, size_t nmemb, voi
 static size_t writeFileCallback(void* ptr, size_t size, size_t nmemb, void* stream) {
     FILE* file = static_cast<FILE*>(stream);
     return fwrite(ptr, size, nmemb, file);
+}
+
+static int progressCallback(void* clientp, curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal, curl_off_t ulnow) {
+    NetworkProgress* prog = static_cast<NetworkProgress*>(clientp);
+    prog->dlTotal = (long long)dltotal;
+    prog->dlNow = (long long)dlnow;
+    if (dltotal > 0) {
+        prog->percent = (float)dlnow / (float)dltotal * 100.0f;
+    }
+    return 0;
+}
+
+void Network::setProgressCallback(NetworkProgress* progress) {
+    s_progress = *progress;
+}
+
+NetworkProgress Network::getProgress() {
+    return s_progress;
+}
+
+void Network::resetProgress() {
+    memset(&s_progress, 0, sizeof(s_progress));
+}
+
+bool Network::getFileSize(const std::string& url, long long& outSize) {
+    CURL* curl = curl_easy_init();
+    if (!curl) return false;
+
+    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+    curl_easy_setopt(curl, CURLOPT_USERAGENT, "3GX-Updater/1.0");
+    curl_easy_setopt(curl, CURLOPT_NOBODY, 1L);
+    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+    curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 15L);
+
+    CURLcode res = curl_easy_perform(curl);
+    if (res == CURLE_OK) {
+        double size = 0.0;
+        curl_easy_getinfo(curl, CURLINFO_CONTENT_LENGTH_DOWNLOAD_T, &size);
+        outSize = (long long)size;
+    }
+
+    curl_easy_cleanup(curl);
+    return (res == CURLE_OK);
 }
 
 bool Network::init() {
@@ -84,6 +131,9 @@ bool Network::downloadFile(const std::string& url, const std::string& outputPath
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
     curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 15L);
     curl_easy_setopt(curl, CURLOPT_TIMEOUT, 60L);
+    curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L);
+    curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, progressCallback);
+    curl_easy_setopt(curl, CURLOPT_XFERINFODATA, &s_progress);
 
     CURLcode res = curl_easy_perform(curl);
     fclose(fp);

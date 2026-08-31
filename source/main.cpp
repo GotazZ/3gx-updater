@@ -4,8 +4,10 @@
 #include <string>
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include "network.hpp"
 #include "plugin_manager.hpp"
+#include "app_updater.hpp"
 
 #define SCREEN_WIDTH  400
 #define SCREEN_HEIGHT 240
@@ -38,6 +40,11 @@ static bool s_loading = false;
 static float s_progress = 0.0f;
 static bool s_progressActive = false;
 static int s_animFrame = 0;
+static NetworkProgress s_dlProgress;
+static bool s_updateAvailable = false;
+static std::string s_updateVersion;
+static std::string s_updateUrl;
+static bool s_updatePendingInstall = false;
 
 static u32 ColorLerp(u32 a, u32 b, float t) {
     int ar = (a >> 24) & 0xFF, ag = (a >> 16) & 0xFF, ab = (a >> 8) & 0xFF, aa = a & 0xFF;
@@ -116,7 +123,7 @@ static void updateFooterText() {
     if (!s_footerBuf) return;
     std::string footerMsg = "STATUS: " + s_statusMsg + "\n\n"
         "DPAD: Naviguer    (A): Installer\n"
-        "SELECT: Actualiser    START: Quitter";
+        "SELECT: Actualiser    (L): MAJ App    START: Quitter";
     C2D_TextParse(&s_footerText, s_footerBuf, footerMsg.c_str());
     C2D_TextOptimize(&s_footerText);
 }
@@ -145,6 +152,17 @@ static void DrawProgressBar(float x, float y, float w, float h, float progress, 
         }
     }
     DrawRoundedRect(x, y, w, h, h / 2.0f, border);
+
+    if (progress > 0.0f && progress < 100.0f) {
+        char pctBuf[16];
+        snprintf(pctBuf, sizeof(pctBuf), "%.0f%%", progress);
+        C2D_Text pctText;
+        C2D_TextParse(&pctText, s_statusBuf, pctBuf);
+        C2D_TextOptimize(&pctText);
+        float textW = 0.0f;
+        C2D_TextGetDimensions(&pctText, 0.5f, 0.5f, &textW, nullptr);
+        C2D_DrawText(&pctText, C2D_WithColor, x + w / 2.0f - textW / 2.0f, y + 8, 0.5f, 0.5f, 0.5f, C2D_Color32(0xFF, 0xFF, 0xFF, 0xFF));
+    }
 }
 
 static void refreshIndex() {
@@ -207,6 +225,18 @@ int main(int argc, char** argv) {
         } else {
             s_statusMsg = "Erreur lors du telechargement de l'index.";
         }
+
+        s_statusMsg = "Verification des mises a jour...";
+        updateFooterText();
+        AppUpdater::UpdateInfo updateInfo = AppUpdater::checkForUpdates("GotazZ/3gx-updater");
+        if (updateInfo.available) {
+            s_updateAvailable = true;
+            s_updateVersion = updateInfo.latestVersion;
+            s_updateUrl = updateInfo.downloadUrl;
+            s_statusMsg = "Mise a jour v" + updateInfo.latestVersion + " disponible (L pour installer)";
+        } else {
+            s_statusMsg = "Application a jour (v" + std::string(AppUpdater::CURRENT_VERSION) + ")";
+        }
     } else {
         s_statusMsg = "Erreur d'initialisation du reseau (SOC).";
     }
@@ -264,6 +294,7 @@ int main(int argc, char** argv) {
                 s_loading = true;
                 s_progressActive = true;
                 s_progress = 0.0f;
+                Network::resetProgress();
                 updateFooterText();
 
                 std::string downloadUrl = PluginManager::getLatestReleaseDownloadUrl(selected.repo);
@@ -282,14 +313,67 @@ int main(int argc, char** argv) {
                 }
                 s_loading = false;
                 s_progressActive = false;
-                s_progress = 0.0f;
+                s_progress = 100.0f;
                 updateFooterText();
             }
         }
 
         if (s_progressActive) {
-            s_progress += 0.05f;
-            if (s_progress > 0.95f) s_progress = 0.95f;
+            s_dlProgress = Network::getProgress();
+            if (s_dlProgress.dlTotal > 0) {
+                s_progress = s_dlProgress.percent;
+            } else {
+                s_progress += 2.5f;
+                if (s_progress > 90.0f) s_progress = 90.0f;
+            }
+        }
+
+        if (kDown & KEY_L) {
+            if (s_updatePendingInstall && s_updateAvailable) {
+                s_statusMsg = "Telechargement de la mise a jour...";
+                s_loading = true;
+                s_progressActive = true;
+                s_progress = 0.0f;
+                Network::resetProgress();
+                updateFooterText();
+
+                std::string updatePath = "/3gx-updater-update.3dsx";
+                if (AppUpdater::downloadUpdate(s_updateUrl, updatePath, &s_dlProgress)) {
+                    s_statusMsg = "Installation de la mise a jour...";
+                    updateFooterText();
+                    if (AppUpdater::applyUpdate(updatePath, "/3gx-updater.3dsx")) {
+                        s_statusMsg = "Mise a jour installee ! Redemarrez l'application.";
+                        s_updateAvailable = false;
+                        s_updatePendingInstall = false;
+                    } else {
+                        s_statusMsg = "Echec de l'installation de la mise a jour.";
+                        s_updatePendingInstall = false;
+                    }
+                } else {
+                    s_statusMsg = "Echec du telechargement de la mise a jour.";
+                    s_updatePendingInstall = false;
+                }
+                s_loading = false;
+                s_progressActive = false;
+                s_progress = 0.0f;
+                updateFooterText();
+            } else {
+                s_statusMsg = "Verification des mises a jour...";
+                updateFooterText();
+                AppUpdater::UpdateInfo updateInfo = AppUpdater::checkForUpdates("GotazZ/3gx-updater");
+                if (updateInfo.available) {
+                    s_updateAvailable = true;
+                    s_updateVersion = updateInfo.latestVersion;
+                    s_updateUrl = updateInfo.downloadUrl;
+                    s_updatePendingInstall = true;
+                    s_statusMsg = "Mise a jour v" + updateInfo.latestVersion + " disponible (L pour installer)";
+                } else {
+                    s_updateAvailable = false;
+                    s_updatePendingInstall = false;
+                    s_statusMsg = "Application a jour (v" + std::string(AppUpdater::CURRENT_VERSION) + ")";
+                }
+                updateFooterText();
+            }
         }
 
         C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
@@ -353,7 +437,7 @@ int main(int argc, char** argv) {
                     }
 
                     if (selected && s_progressActive) {
-                        DrawProgressBar(24, cardY + 44, cardW - 30, 4, s_progress, progressBg, progressFill, progressBorder);
+                        DrawProgressBar(24, cardY + 44, cardW - 30, 4, s_progress / 100.0f, progressBg, progressFill, progressBorder);
                     }
                 }
                 yPos += ITEM_HEIGHT;
