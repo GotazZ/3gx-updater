@@ -57,6 +57,11 @@ CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions -std=gnu++11
 ASFLAGS	:=	-g $(ARCH)
 LDFLAGS	=	-specs=3dsx.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map)
 
+export CFLAGS		:=	$(CFLAGS)
+export CXXFLAGS		:=	$(CXXFLAGS)
+export ASFLAGS		:=	$(ASFLAGS)
+export LDFLAGS		:=	$(LDFLAGS)
+
 LIBS := -lcitro2d -lcitro3d -lcurl -lmbedtls -lmbedcrypto -lmbedx509 -lz -lctru -lm
 
 #---------------------------------------------------------------------------------
