@@ -9,5 +9,14 @@
       "titleIds": ["00040000001B0500", "00040000001B0600"],
       "category": "game"
     }
+      {
+      "id": "ykw3-editor-plugin",
+      "name": "YKW3 Plugin",
+      "author": "gotaz",
+      "description": "Plugin CTRPF pour Yo-kai Watch 3",
+      "repo": "gotaz/ykw2-editor",
+      "titleIds": ["00040000001B0500", "00040000001B0600"],
+      "category": "game"
+    }
   ]
 }
