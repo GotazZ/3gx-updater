@@ -2,11 +2,56 @@
   "plugins": [
     {
       "id": "ykw2-editor-plugin",
-      "name": "YKW2 Plugin",
+      "name": "YKW2 Editor Plugin",
       "author": "gotaz",
       "description": "Plugin CTRPF pour Yo-kai Watch 2",
       "repo": "gotaz/ykw2-editor",
       "titleIds": ["00040000001B0500", "00040000001B0600"],
+      "category": "game"
+    },
+    {
+      "id": "sunshine-speedrun",
+      "name": "Sunshine Speedrun",
+      "author": "gaben",
+      "description": "Outil de speedrun pour Super Mario Sunshine",
+      "repo": "gaben/sunshine-speedrun",
+      "titleIds": ["000400000011C400"],
+      "category": "tool"
+    },
+    {
+      "id": "acnl-custom",
+      "name": "ACNL Customizer",
+      "author": "ryleyw",
+      "description": "Modification de sauvegardes Animal Crossing New Leaf",
+      "repo": "ryleyw/acnl-custom",
+      "titleIds": ["000400000008CC00"],
+      "category": "game"
+    },
+    {
+      "id": "sys-plugin-loader",
+      "name": "System Plugin Loader",
+      "author": "nanquitas",
+      "description": "Chargeur de plugins systeme Luma3DS",
+      "repo": "nanquitas/3ds-system-plugin",
+      "titleIds": ["000400000FFFF000"],
+      "category": "system"
+    },
+    {
+      "id": "kuriimu",
+      "name": "Kuriimu",
+      "author": "cybershadow",
+      "description": "Editeur de fichiers de jeu multiformat",
+      "repo": "cybershadow/kuriimu",
+      "titleIds": [],
+      "category": "tool"
+    },
+    {
+      "id": "umd-replacer",
+      "name": "UMD Replacer",
+      "author": "daxtsu",
+      "description": "Remplacement de cartes Virtuel sur PSP",
+      "repo": "daxtsu/umd-replacer",
+      "titleIds": ["NPJH00000", "ULES00123"],
       "category": "game"
     }
   ]
