@@ -1,0 +1,30 @@
+name: Build 3DS Homebrew
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: devkitpro/devkitarm:latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          dkp-pacman -Sy --noconfirm 3ds-curl 3ds-mbedtls 3ds-citro2d 3ds-citro3d 3ds-cjson 3ds-zlib
+
+      - name: Build project
+        run: |
+          make
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: 3gx-updater
+          path: 3gx-updater.3dsx

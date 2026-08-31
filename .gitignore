@@ -1,0 +1,12 @@
+# Build outputs
+build/
+*.3dsx
+*.elf
+*.smdh
+
+# Temporary files
+*.o
+*.d
+.DS_Store
+.vscode/
+.idea/

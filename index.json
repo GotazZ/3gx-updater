@@ -1,0 +1,13 @@
+{
+  "plugins": [
+    {
+      "id": "ykw2-editor-plugin",
+      "name": "YKW2 Plugin",
+      "author": "gotaz",
+      "description": "Plugin CTRPF pour Yo-kai Watch 2",
+      "repo": "gotaz/ykw2-editor",
+      "titleIds": ["00040000001B0500", "00040000001B0600"],
+      "category": "game"
+    }
+  ]
+}
